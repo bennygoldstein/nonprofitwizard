@@ -946,7 +946,7 @@ footer p{font-size:.9rem;color:#bdb5e6}
     p.then(function () {
       renderSummary();
       if (stage === "done") { return wizardSay("Noted. I've updated your details — press “Send to our team” whenever you're ready, or keep adding anything you'd like us to know."); }
-      if (stage === "free") { var got = KEYS.filter(function (k) { return data[k]; }).length; return wizardSay(got ? "Lovely. I've filled in " + got + " detail" + (got > 1 ? "s" : "") + " so far. A few quick questions to finish up." : "Thank you. Let me ask a few quick questions so I have everything our team needs.").then(nextQuestion); }
+      if (stage === "free") { var got = KEYS.filter(function (k) { return data[k]; }).length; var left = missingRequired().length; return wizardSay(!got ? "Thank you. Let me ask a few quick questions so I have everything our team needs." : left ? "Lovely. I've filled in " + got + " detail" + (got > 1 ? "s" : "") + " so far. " + (left === 1 ? "One quick question" : "A few quick questions") + " to finish up." : "Lovely. I've filled in " + got + " details from what you told me, and that covers everything essential.").then(nextQuestion); }
       return nextQuestion();
     }).catch(function (e) { addMsg("sys", "Hmm, something went wrong. Please try again."); })
       .then(function () { busy = false; sendBtn.disabled = false; input.focus(); });
