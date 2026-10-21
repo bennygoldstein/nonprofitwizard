@@ -143,7 +143,7 @@
     var pct = Math.round(filled / REQUIRED.length * 100);
     var bar = qs("#prog i"); if (bar) bar.style.width = pct + "%";
     var pl = $("progl"); if (pl) pl.textContent = filled + " of " + REQUIRED.length + " essentials filled in";
-    var send = $("sendwiz"); if (send) send.disabled = !(data.full_name && (data.email || data.phone));
+    var send = $("sendwiz"); if (send) send.disabled = !(data.full_name && data.phone);
     // mirror into the contact form
     KEYS.forEach(function (k) { var el = $("f_" + k); if (el && data[k] && el.value !== data[k]) { if (el.tagName === "SELECT") { var found = false; qsa("option", el).forEach(function (o) { if (o.value === data[k]) found = true; }); if (found) el.value = data[k]; } else el.value = data[k]; } });
   }
@@ -155,11 +155,11 @@
   function start() {
     if (started) return; started = true; busy = true;
     wizardSay(NW.greeting, 600).then(function () { return wizardSay(NW.freePrompt || "Tell me about the nonprofit you want to start, in your own words. What will it do, for whom, and where?", 900); })
-      .then(function () { stage = "free"; busy = false; input.focus(); });
+      .then(function () { stage = "free"; busy = false; });
   }
   function nextQuestion() {
     var miss = missingRequired();
-    if (!miss.length) { stage = "done"; return wizardSay(NW.done, 900).then(function () { renderSummary(); var s = $("sendwiz"); if (s) s.focus(); }); }
+    if (!miss.length) { stage = "done"; return wizardSay(NW.done, 900).then(function () { renderSummary(); }); }
     askKey = miss[0]; stage = "fill";
     var sc = scriptFor(askKey); var q = sc ? sc.wizard_says : "What is your " + LABEL[askKey].toLowerCase() + "?";
     // Skip re-asking bundled keys when the primary already asked
@@ -182,7 +182,7 @@
       if (stage === "free") { var got = KEYS.filter(function (k) { return data[k]; }).length; var left = missingRequired().length; return wizardSay(!got ? "Thank you. Let me ask a few quick questions so I have everything our team needs." : left ? "Lovely. I've filled in " + got + " detail" + (got > 1 ? "s" : "") + " so far. " + (left === 1 ? "One quick question" : "A few quick questions") + " to finish up." : "Lovely. I've filled in " + got + " details from what you told me, and that covers everything essential.").then(nextQuestion); }
       return nextQuestion();
     }).catch(function (e) { addMsg("sys", "Hmm, something went wrong. Please try again."); })
-      .then(function () { busy = false; sendBtn.disabled = false; input.focus(); });
+      .then(function () { busy = false; sendBtn.disabled = false; input.focus({ preventScroll: true }); });
   }
   function guessFromFreeText(text) {
     // best-effort offline extraction from a free description
@@ -192,8 +192,8 @@
     var st = normalizeState(text); if (st && !data.state) data.state = st;
     var nm = text.match(/(?:called|named|name is|name it)\s+["“]?([A-Z][^.,"”\n]{2,60})["”]?/); if (nm && !data.org_name) data.org_name = nm[1].trim();
     if (!data.mission) data.mission = text.trim().slice(0, 600);
-    if (!data.org_type) localSet("org_type", text);
-    if (/\$|\bk\b|thousand|donat|fund|raise|budget|money/i.test(text) && !data.expected_revenue) localSet("expected_revenue", text);
+    if (optionsFor("org_type") && !data.org_type) localSet("org_type", text);
+    if (optionsFor("expected_revenue") && /\$|\bk\b|thousand|donat|fund|raise|budget|money/i.test(text) && !data.expected_revenue) localSet("expected_revenue", text);
   }
   function autoGrow() { input.style.height = "auto"; input.style.height = Math.min(160, input.scrollHeight) + "px"; }
   if (input) {
@@ -202,7 +202,7 @@
     input.addEventListener("focus", start);
   }
   if (sendBtn) sendBtn.addEventListener("click", function () { start(); handleUser(input.value.trim()); });
-  qsa("[data-start-wizard]").forEach(function (b) { b.addEventListener("click", function () { setTimeout(function () { start(); input.focus(); }, 350); }); });
+  qsa("[data-start-wizard]").forEach(function (b) { b.addEventListener("click", function () { start(); input.focus({ preventScroll: true }); }); });
   if ("IntersectionObserver" in window && log) { var lio = new IntersectionObserver(function (es) { es.forEach(function (e) { if (e.isIntersecting) { start(); lio.disconnect(); } }); }, { threshold: .4 }); lio.observe(log); }
 
   /* ---- voice ---- */
@@ -223,26 +223,25 @@
   }
 
   /* ============================================================
-     SUBMISSION (FormSubmit AJAX) — shared by wizard + contact form
+     SUBMISSION — shared by wizard + contact form
      ============================================================ */
   function payload(source) {
     var p = {};
     FIELDS.forEach(function (f) { var el = $("f_" + f.key); var v = (el && el.value) ? el.value : data[f.key]; if (v) p[f.key] = v; });
     p.source = source;
-    p._cc = "pobox50@gmail.com";
     if (transcript.length) p.wizard_transcript = transcriptText().slice(0, 6000);
-    p.page = location.href;
-    p._subject = "Nonprofit Wizard — callback request: " + (p.org_name || p.full_name || "new lead");
-    p._template = "table"; p._captcha = "false";
-    if (p.email) p._replyto = p.email;
+    p.website = $("f__honey") ? $("f__honey").value : "";
     return p;
   }
   function submit(source, btn, okEl, badEl) {
     var p = payload(source);
-    if (!p.full_name || !(p.email || p.phone)) { showAlert(badEl, "Please add your name and a phone number or email so we can reach you."); return Promise.resolve(false); }
+    var digits = (p.phone || "").replace(/\D/g, "");
+    if (!p.full_name || digits.length < 7 || digits.length > 15) { showAlert(badEl, "Please add your name and a valid callback number so we can reach you."); return Promise.resolve(false); }
     var orig = btn.innerHTML; btn.disabled = true; btn.innerHTML = "Sending…";
-    return fetch(NW.formEndpoint, { method: "POST", headers: { "Content-Type": "application/json", "Accept": "application/json" }, body: JSON.stringify(p) })
-      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok && (j.success === "true" || j.success === true), j: j }; }).catch(function () { return { ok: r.ok }; }); })
+    hideAlert(badEl); hideAlert(okEl);
+    var controller = new AbortController(), timer = setTimeout(function () { controller.abort(); }, 30000);
+    return fetch(NW.formEndpoint, { method: "POST", headers: { "Content-Type": "application/json", "Accept": "application/json" }, body: JSON.stringify(p), signal: controller.signal })
+      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok && j.ok === true, j: j }; }); })
       .then(function (res) {
         if (!res.ok) throw new Error((res.j && res.j.message) || "send failed");
         hideAlert(badEl); showAlert(okEl, NW.successMessage); btn.innerHTML = "Sent ✓";
@@ -251,9 +250,9 @@
       })
       .catch(function (e) {
         btn.disabled = false; btn.innerHTML = orig;
-        showAlert(badEl, NW.errorMessage + (e && e.message ? " (" + e.message + ")" : ""));
+        showAlert(badEl, "We could not confirm that your request was sent. Please try again or call Shai at 561-212-1192.");
         return false;
-      });
+      }).finally(function () { clearTimeout(timer); });
   }
   function showAlert(el, text) { if (!el) return; el.textContent = text; el.classList.add("show"); el.scrollIntoView({ behavior: "smooth", block: "center" }); }
   function hideAlert(el) { if (el) el.classList.remove("show"); }
