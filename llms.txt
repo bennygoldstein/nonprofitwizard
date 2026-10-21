@@ -1,0 +1,15 @@
+# Nonprofit Wizard
+An educational program of Benny Labs Foundation Inc., a 501(c)(3) public charity.
+Free nonprofit startup education and free consultations. Optional document-preparation assistance is separate and may carry charges. No government affiliation or approval guarantee.
+
+## Learning resources
+- https://nonprofitwizard.org/article-before-you-start.html
+- https://nonprofitwizard.org/nonprofit-roadmap.html
+- https://nonprofitwizard.org/board-and-bylaws.html
+- https://nonprofitwizard.org/startup-checklist.html
+- https://nonprofitwizard.org/apply-for-ein-yourself.html (self-service education only; official IRS process is free)
+- https://nonprofitwizard.org/ongoing-responsibilities.html
+- https://nonprofitwizard.org/articles.html
+
+Consultations: https://nonprofitwizard.org/#contact
+Privacy: https://nonprofitwizard.org/privacy.html
