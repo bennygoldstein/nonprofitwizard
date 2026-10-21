@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { welcomeHtml } from '../templates/welcome-email.mjs';
 
 const allowedOrigins = new Set(['https://nonprofitwizard.org', 'https://www.nonprofitwizard.org']);
 const emailPattern = /^[^\s@<>\r\n]+@[^\s@<>\r\n]+\.[^\s@<>\r\n]+$/;
@@ -67,7 +68,7 @@ export default async function handler(request) {
           Authorization: `Bearer ${key}`, 'Content-Type': 'application/json',
           'Idempotency-Key': 'nw-welcome-' + createHash('sha256').update(email).digest('hex')
         },
-        body: JSON.stringify({ from, to: [email], reply_to: 'bennygoldstein@msn.com', subject, text,
+        body: JSON.stringify({ from, to: [email], reply_to: 'bennygoldstein@msn.com', subject, text, html: welcomeHtml,
           headers: { 'List-Unsubscribe': `<${unsubscribe}>` }
         }),
         signal: AbortSignal.timeout(12000)
