@@ -43,3 +43,16 @@ Free consultation &amp; advice with <strong>Shai</strong><br>
 <!--[if mso]></td></tr></table><![endif]-->
 </td></tr></table>
 </body></html>`;
+
+
+function swap(src, from, to) { if (!src.includes(from)) throw new Error('template changed: ' + from.slice(0, 40)); return src.replace(from, to); }
+const kitButton = '<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td bgcolor="#f3bc45" style="border-radius:8px;"><a href="https://nonprofitwizard.org/nonprofit-startup-kit.html" style="display:inline-block;padding:13px 20px;border:1px solid #f3bc45;border-radius:8px;color:#2a1d05;font-size:15px;line-height:20px;font-weight:bold;text-decoration:none;">Open your Startup Kit &rarr;</a></td></tr></table><p style="margin:14px 0 0;font-size:15px;line-height:24px;"><a href="https://nonprofitwizard.org/assets/Nonprofit-Startup-Kit.pdf" style="color:#4b34b8;font-weight:bold;">Download the PDF</a></p>';
+let k = welcomeHtml;
+k = swap(k, 'Welcome to the Weekly Wizard</title>', 'Your free Nonprofit Startup Kit</title>');
+k = swap(k, 'YOUR FIRST READ', 'YOUR FREE STARTUP KIT');
+k = swap(k, 'Before You Start a Nonprofit: Seven Decisions to Make</h3>', 'The Nonprofit Startup Kit: from idea to 501(c)(3)</h3>');
+k = swap(k, 'Start with your purpose, the people you will serve, your board, your budget, and a manageable first program.', 'A printable checklist and workbook covering your mission, name, incorporation, board, bylaws, EIN, IRS application, state registrations, and annual filings.');
+const btnRe = /<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td bgcolor="#f3bc45"[\s\S]*?<\/table>/;
+if (!btnRe.test(k)) throw new Error('template changed: button');
+k = k.replace(btnRe, kitButton);
+export const kitHtml = k;

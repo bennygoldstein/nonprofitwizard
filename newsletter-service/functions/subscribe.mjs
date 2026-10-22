@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { welcomeHtml } from '../templates/welcome-email.mjs';
+import { welcomeHtml, kitHtml } from '../templates/welcome-email.mjs';
 
 const allowedOrigins = new Set(['https://nonprofitwizard.org', 'https://www.nonprofitwizard.org']);
 const emailPattern = /^[^\s@<>\r\n]+@[^\s@<>\r\n]+\.[^\s@<>\r\n]+$/;
@@ -38,6 +38,7 @@ export default async function handler(request) {
     return response(400, { ok: false, message: 'Enter a valid email and choose to subscribe.' }, origin);
   }
 
+  const isKit = input.source === 'startup-kit';
   const site = process.env.URL;
   if (!site || new URL(site).hostname.endsWith('.netlify.app') === false) {
     return response(503, { ok: false }, origin);
@@ -48,8 +49,8 @@ export default async function handler(request) {
       method: 'POST',
       headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       body: new URLSearchParams({
-        'form-name': 'nw-newsletter', email, consent: 'Yes — Nonprofit Wizard weekly educational articles',
-        source: 'nonprofitwizard.org', subscribed_at: new Date().toISOString(), 'bot-field': ''
+        'form-name': 'nw-newsletter', email, consent: isKit ? 'Yes — Startup Kit link and weekly educational articles' : 'Yes — Nonprofit Wizard weekly educational articles',
+        source: isKit ? 'nonprofitwizard.org — free Startup Kit' : 'nonprofitwizard.org', subscribed_at: new Date().toISOString(), 'bot-field': ''
       }),
       signal: AbortSignal.timeout(12000)
     });
@@ -60,15 +61,16 @@ export default async function handler(request) {
   const key = process.env.RESEND_API_KEY;
   const from = process.env.NEWSLETTER_FROM;
   if (key && from) {
-    const subject = 'Welcome to the Weekly Wizard';
-    const text = `Free consultation & advice with Shai: 561-212-1192\nShai leads our consultations. He has over 20 years of experience and has helped thousands of people start their own nonprofits.\n\nWelcome to Nonprofit Wizard!\n\nYou signed up for our free weekly educational articles about starting and running a nonprofit.\n\nStart with our first article: Before You Start a Nonprofit: Seven Decisions to Make\nhttps://nonprofitwizard.org/article-before-you-start.html\n\nNeed to talk through the steps? Request a free consultation:\nhttps://nonprofitwizard.org/#contact\nSomeone will get back to you within a few hours. No purchase is required.\n\nTo unsubscribe at any time, reply with "Unsubscribe" or email bennygoldstein@msn.com from the subscribed address.\n\nNonprofit Wizard, a program of Benny Labs Foundation Inc.\n6772 Palmetto Cir S 201, Boca Raton, FL 33433\nhttps://nonprofitwizard.org/privacy.html`;
+    const subject = isKit ? 'Your free Nonprofit Startup Kit' : 'Welcome to the Weekly Wizard';
+    const kitLine = isKit ? `Your free Nonprofit Startup Kit (printable workbook): https://nonprofitwizard.org/nonprofit-startup-kit.html\nPDF download: https://nonprofitwizard.org/assets/Nonprofit-Startup-Kit.pdf\n\n` : '';
+    const text = kitLine + `Free consultation & advice with Shai: 561-212-1192\nShai leads our consultations. He has over 20 years of experience and has helped thousands of people start their own nonprofits.\n\nWelcome to Nonprofit Wizard!\n\nYou signed up for our free weekly educational articles about starting and running a nonprofit.\n\nStart with our first article: Before You Start a Nonprofit: Seven Decisions to Make\nhttps://nonprofitwizard.org/article-before-you-start.html\n\nNeed to talk through the steps? Request a free consultation:\nhttps://nonprofitwizard.org/#contact\nSomeone will get back to you within a few hours. No purchase is required.\n\nTo unsubscribe at any time, reply with "Unsubscribe" or email bennygoldstein@msn.com from the subscribed address.\n\nNonprofit Wizard, a program of Benny Labs Foundation Inc.\n6772 Palmetto Cir S 201, Boca Raton, FL 33433\nhttps://nonprofitwizard.org/privacy.html`;
     try {
       const sent = await fetch('https://api.resend.com/emails', {
         method: 'POST', headers: {
           Authorization: `Bearer ${key}`, 'Content-Type': 'application/json',
           'Idempotency-Key': 'nw-welcome-' + createHash('sha256').update(email).digest('hex')
         },
-        body: JSON.stringify({ from, to: [email], reply_to: 'bennygoldstein@msn.com', subject, text, html: welcomeHtml,
+        body: JSON.stringify({ from, to: [email], reply_to: 'bennygoldstein@msn.com', subject, text, html: isKit ? kitHtml : welcomeHtml,
           headers: { 'List-Unsubscribe': `<${unsubscribe}>` }
         }),
         signal: AbortSignal.timeout(12000)

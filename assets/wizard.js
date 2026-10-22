@@ -246,7 +246,7 @@
         if (!res.ok) throw new Error((res.j && res.j.message) || "send failed");
         hideAlert(badEl); showAlert(okEl, NW.successMessage); btn.innerHTML = "Sent ✓";
         // Google Ads conversion: consultation request
-        if (window.gtag) gtag("event", "conversion", { send_to: "AW-18523106729/baTFCPmFnKUdEKnbwIBF" });
+        if (window.nwTrack) { nwTrack("consult"); } else if (window.gtag) { gtag("event", "conversion", { send_to: "AW-18523106729/baTFCPmFnKUdEKnbwIBF" }); }
         try { localStorage.setItem("nw_sent", "1"); } catch (e) { }
         return true;
       })
