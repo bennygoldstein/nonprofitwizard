@@ -66,6 +66,7 @@
     var hd = document.getElementById("q-result-h"); if (hd) hd.focus({ preventScroll: true });
     root.scrollIntoView({ block: "start" });
     body.querySelector("[data-retake]").addEventListener("click", function () { answers = []; i = 0; show(); focusLegend(); });
+    if (window.nwTrack) { try { window.nwTrack("engage"); } catch (e) { } }
     if (window.gtag) { try { window.gtag("event", "quiz_complete", { score: total, result: tier.name }); } catch (e) { } }
   }
   show();
